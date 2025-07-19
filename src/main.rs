@@ -9,6 +9,9 @@ use system_monitor::SystemMonitor;
 mod notification_widget;
 use notification_widget::NotificationWidget;
 
+mod tray_widget;
+use tray_widget::TrayWidget;
+
 fn load_css() {
     let css_provider = CssProvider::new();
 
@@ -72,6 +75,9 @@ fn main() {
         // Create notification widget (if swaync is available)
         let notification_widget = NotificationWidget::new();
 
+        // Create tray widget
+        let tray_widget = TrayWidget::new();
+
         // Add some spacing and the widgets to the right side
         let spacer = Label::new(None);
         spacer.set_hexpand(true);
@@ -82,6 +88,7 @@ fn main() {
         main_box.append(&title_label);
         main_box.append(&spacer);
 
+        main_box.append(tray_widget.widget());
         main_box.append(system_monitor.widget());
 
         // Add notification widget if available
