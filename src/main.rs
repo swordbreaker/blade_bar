@@ -1,5 +1,5 @@
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, CssProvider, Label, gdk::Display, Box, Orientation};
+use gtk::{Application, ApplicationWindow, Box, CssProvider, Label, Orientation, gdk::Display};
 use gtk4 as gtk;
 use gtk4_layer_shell::{Edge, Layer, LayerShell};
 
@@ -36,10 +36,16 @@ fn main() {
         let window = ApplicationWindow::builder()
             .application(app)
             .title("Wayland Bar")
+            .css_classes(["main-window"])
             .build();
 
         // Initialize layer shell for this window
         LayerShell::init_layer_shell(&window);
+
+        // Enable transparency
+        if let Some(surface) = window.surface() {
+            surface.set_opaque_region(None);
+        }
 
         // Set the desired layer
         LayerShell::set_layer(&window, Layer::Top);
@@ -62,26 +68,26 @@ fn main() {
 
         // Create system monitor widget
         let system_monitor = SystemMonitor::new();
-        
+
         // Create notification widget (if swaync is available)
         let notification_widget = NotificationWidget::new();
-        
+
         // Add some spacing and the widgets to the right side
         let spacer = Label::new(None);
         spacer.set_hexpand(true);
-        
+
         let title_label = Label::new(Some("BladeBar"));
         title_label.add_css_class("title-label");
-        
+
         main_box.append(&title_label);
         main_box.append(&spacer);
-        
+
+        main_box.append(system_monitor.widget());
+
         // Add notification widget if available
         if let Some(notification) = notification_widget {
             main_box.append(notification.widget());
         }
-        
-        main_box.append(system_monitor.widget());
 
         window.set_child(Some(&main_box));
         window.present();
