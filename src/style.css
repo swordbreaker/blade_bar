@@ -1,0 +1,242 @@
+/* GTK4 Bar CSS Styling */
+
+/* Main window styling */
+window {
+    background: linear-gradient(90deg, #1a1a2e, #16213e);
+    border-radius: 0;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Label styling */
+label {
+    color: #ffffff;
+    font-family: "JetBrains Mono", "Fira Code", "Source Code Pro", monospace;
+    font-size: 13px;
+    font-weight: 500;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    margin: 0 15px;
+}
+
+/* Container styling for better layout */
+box {
+    background: transparent;
+    padding: 5px 10px;
+}
+
+/* Button styling (if you add buttons later) */
+button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 6px;
+    color: #ffffff;
+    font-weight: 500;
+    padding: 5px 12px;
+    margin: 2px 4px;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Separator styling */
+separator {
+    background: rgba(255, 255, 255, 0.2);
+    min-width: 1px;
+    min-height: 20px;
+    margin: 0 5px;
+}
+
+/* System Monitor Widget Styling */
+.system-monitor {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 2px 8px;
+    margin: 2px 5px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cpu-label {
+    color: #4CAF50;
+    font-weight: 600;
+    margin: 0 5px;
+    font-size: 12px;
+}
+
+.memory-label {
+    color: #2196F3;
+    font-weight: 600;
+    margin: 0 5px;
+    font-size: 12px;
+}
+
+.temp-label {
+    color: #FF9800;
+    font-weight: 600;
+    margin: 0 5px;
+    font-size: 12px;
+}
+
+.main-container {
+    padding: 0 10px;
+}
+
+.title-label {
+    color: #E1E1E1;
+    font-weight: 700;
+    font-size: 14px;
+    margin: 0 10px;
+}
+
+/* Notification Widget Styling */
+.notification-button {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 2px 6px;
+    margin: 2px 5px;
+    min-width: 24px;
+    min-height: 24px;
+}
+
+.notification-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.notification-button:active {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.notification-label {
+    font-size: 14px;
+    margin: 0;
+    padding: 0;
+}
+
+/* Icon styling (for future use) */
+image {
+    color: #ffffff;
+}
+
+/* Progress bar styling (for future use) */
+progressbar {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    min-height: 6px;
+}
+
+progressbar progress {
+    background: linear-gradient(90deg, #00d4aa, #00b4d8);
+    border-radius: 10px;
+    min-height: 6px;
+}
+
+/* Entry/Input styling (for future use) */
+entry {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: #ffffff;
+    padding: 4px 8px;
+}
+
+entry:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+}
+
+/* Tooltip styling */
+tooltip {
+    background: rgba(0, 0, 0, 0.9);
+    color: #ffffff;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Menu styling (for context menus) */
+menu {
+    background: rgba(26, 26, 46, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+menuitem {
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    margin: 1px;
+}
+
+menuitem:hover {
+    background: rgba(102, 126, 234, 0.3);
+}
+
+/* Custom classes for specific components */
+.left-section {
+    margin-right: auto;
+}
+
+.center-section {
+    margin: 0 auto;
+}
+
+.right-section {
+    margin-left: auto;
+}
+
+.workspace-button {
+    min-width: 25px;
+    min-height: 25px;
+    padding: 2px;
+    margin: 0 2px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.workspace-button.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.system-tray-icon {
+    padding: 4px;
+    margin: 0 2px;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.system-tray-icon:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.clock-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.battery-low {
+    color: #ff6b6b;
+}
+
+/* Dark theme specific adjustments */
+window {
+    background: linear-gradient(90deg, #0f0f23, #1a1a2e);
+}
+
+label {
+    color: #e0e0e0;
+}
