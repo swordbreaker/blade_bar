@@ -9,3 +9,4 @@ gtk4-layer-shell = "0.5.0"
 sysinfo = "0.30"
 tokio = { version = "1.0", features = ["full"] }
 glib = "0.18"
+system-tray = "0.8.1"
