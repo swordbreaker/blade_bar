@@ -93,11 +93,11 @@ impl TrayWidget {
                                     system_tray::client::Event::Add(key, item) => {
                                         println!("Tray item added: {key}: {item:?}");
                                     }
-                                    system_tray::client::Event::Remove { key } => {
+                                    system_tray::client::Event::Remove(key) => {
                                         println!("Tray item removed: {key}");
                                     }
-                                    system_tray::client::Event::Update { key, item } => {
-                                        println!("Tray item updated: {key}: {item:?}");
+                                    system_tray::client::Event::Update(key, event) => {
+                                        println!("Tray item updated: {key}: {event:?}");
                                     }
                                 }
 
