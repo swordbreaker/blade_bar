@@ -28,12 +28,18 @@ fn load_css() {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let app = Application::builder()
         .application_id("org.swordi.BladeBar")
         .build();
 
-    app.connect_activate(|app| {
+    // Create tray widget
+    let tray_widget = TrayWidget::new()
+        .await
+        .expect("Failed to create tray widget");
+
+    app.connect_activate(move |app| {
         load_css();
 
         let window = ApplicationWindow::builder()
@@ -74,9 +80,6 @@ fn main() {
 
         // Create notification widget (if swaync is available)
         let notification_widget = NotificationWidget::new();
-
-        // Create tray widget
-        let tray_widget = TrayWidget::new();
 
         // Add some spacing and the widgets to the right side
         let spacer = Label::new(None);
