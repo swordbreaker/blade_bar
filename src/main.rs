@@ -34,11 +34,6 @@ async fn main() {
         .application_id("org.swordi.BladeBar")
         .build();
 
-    // Create tray widget
-    let tray_widget = TrayWidget::new()
-        .await
-        .expect("Failed to create tray widget");
-
     app.connect_activate(move |app| {
         load_css();
 
@@ -91,7 +86,19 @@ async fn main() {
         main_box.append(&title_label);
         main_box.append(&spacer);
 
-        main_box.append(tray_widget.widget());
+        // Clone main_box for the async task
+        let main_box_weak = main_box.downgrade();
+
+        // Spawn async task for tray widget
+        glib::spawn_future_local(async move {
+            if let Ok(tray_widget) = TrayWidget::new().await {
+                // Use glib::idle_add to update UI from the main thread
+                if let Some(main_box) = main_box_weak.upgrade() {
+                    main_box.append(tray_widget.widget());
+                }
+            }
+        });
+
         main_box.append(system_monitor.widget());
 
         // Add notification widget if available

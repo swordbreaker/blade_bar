@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
-use gtk4::gdk_pixbuf::{Colorspace, Pixbuf};
-use gtk4::prelude::*;
-use gtk4::{Box as GtkBox, Button, Image, Orientation};
-use system_tray::client::ActivateRequest;
-use system_tray::item::{Status, StatusNotifierItem};
-
 use crate::tray_widget::{self, TrayWidget};
+use gtk4::gdk_pixbuf::{Colorspace, Pixbuf};
+use gtk4::{Box as GtkBox, Button, Image, Orientation};
+use gtk4::{EventControllerMotion, Label, Popover, prelude::*};
+use system_tray::client::ActivateRequest;
+use system_tray::item::IconPixmap;
+use system_tray::item::Tooltip;
+use system_tray::item::{Status, StatusNotifierItem};
 
 pub fn create_tray_button(item: &StatusNotifierItem, tray_widget: Arc<TrayWidget>) -> Button {
     let button = Button::new();
@@ -14,14 +15,10 @@ pub fn create_tray_button(item: &StatusNotifierItem, tray_widget: Arc<TrayWidget
 
     let title = item.title.as_deref().clone().unwrap_or("Unknown");
 
-    setup_button_icon(item, &button, title);
+    set_button_icon(item.icon_name.as_deref(), item.icon_pixmap.clone(), &button);
 
     // Set tooltip
-    button.set_tooltip_text(Some(&title));
-
-    button.connect_clicked(move |_| {
-        // println!("Left-clicked tray item: {} ({})", t1, item_id);
-    });
+    set_tooltip(&button, item.tool_tip.clone(), Some(title));
 
     // Handle right-click (secondary button) using gesture
     let right_click = gtk4::GestureClick::new();
@@ -34,13 +31,18 @@ pub fn create_tray_button(item: &StatusNotifierItem, tray_widget: Arc<TrayWidget
         if let Some(tray_widget) = tray_widget_weak.upgrade() {
             let item_id = item_id_right.clone();
 
-            tray_widget
-                .system_tray_client
-                .activate(ActivateRequest::Default {
-                    address: item_id,
-                    x: x as i32,
-                    y: y as i32,
-                });
+            glib::spawn_future_local(async move {
+                tray_widget
+                    .system_tray_client
+                    .activate(ActivateRequest::Default {
+                        address: item_id,
+                        x: x as i32,
+                        y: y as i32,
+                    })
+                    .await
+                    .unwrap();
+            });
+
             // Self::show_context_menu(&button, &item_id_right, &t2, &menu_data, x, y);
         }
     });
@@ -50,14 +52,17 @@ pub fn create_tray_button(item: &StatusNotifierItem, tray_widget: Arc<TrayWidget
     button
 }
 
-fn setup_button_icon(item: &StatusNotifierItem, button: &Button, title: &str) {
-    match (&item.icon_name, item.icon_pixmap.as_deref()) {
+fn create_button_icon(
+    icon_name: Option<&str>,
+    icon_pixmap: Option<Vec<IconPixmap>>,
+) -> Option<Image> {
+    match (icon_name, icon_pixmap.as_deref()) {
         (Some(icon_name), _) if !icon_name.is_empty() => {
             let image = Image::from_icon_name(icon_name);
             image.set_pixel_size(16);
-            button.set_child(Some(&image));
+            return Some(image);
         }
-        (_, Some(pixmap)) => {
+        (_, Some(pixmap)) if pixmap.len() > 0 => {
             let pixels = &pixmap[0];
             let data = &pixmap[0].pixels;
 
@@ -84,13 +89,45 @@ fn setup_button_icon(item: &StatusNotifierItem, button: &Button, title: &str) {
 
             let image = Image::from_pixbuf(Some(&pixbuf));
             image.set_pixel_size(16);
-            button.set_child(Some(&image));
+            return Some(image);
         }
         _ => {
-            // Fallback to text label
-            button.set_label(&title);
+            return None;
         }
     }
+}
+
+pub fn set_button_icon(
+    icon_name: Option<&str>,
+    icon_pixmap: Option<Vec<IconPixmap>>,
+    button: &Button,
+) {
+    match create_button_icon(icon_name, icon_pixmap) {
+        Some(image) => {
+            button.set_child(Some(&image));
+        }
+        None => {
+            // Fallback to text label if no icon is available
+            button.set_label("");
+        }
+    }
+}
+
+pub fn set_tooltip(button: &Button, tooltip: Option<Tooltip>, title: Option<&str>) {
+    let tooltip_ref = tooltip.as_ref();
+
+    // Use simple tooltip for text-only cases
+    let tooltip_text = tooltip_ref.map(|t| t.title.as_str());
+    let description = tooltip_ref.map(|t| t.description.as_str()).unwrap_or("");
+    let final_text = tooltip_text.or(title).unwrap_or("");
+
+    let combined_text = if !description.is_empty() && !final_text.is_empty() {
+        format!("{}\n{}", final_text, description)
+    } else {
+        final_text.to_string()
+    };
+
+    button.set_tooltip_text(Some(&combined_text));
 }
 
 fn setup_button_left_click(item: &StatusNotifierItem, button: &Button) {
