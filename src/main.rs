@@ -86,19 +86,6 @@ async fn main() {
         main_box.append(&title_label);
         main_box.append(&spacer);
 
-        // Clone main_box for the async task
-        let main_box_weak = main_box.downgrade();
-
-        // Spawn async task for tray widget
-        glib::spawn_future_local(async move {
-            if let Ok(tray_widget) = TrayWidget::new().await {
-                // Use glib::idle_add to update UI from the main thread
-                if let Some(main_box) = main_box_weak.upgrade() {
-                    main_box.append(tray_widget.widget());
-                }
-            }
-        });
-
         main_box.append(system_monitor.widget());
 
         // Add notification widget if available
@@ -108,6 +95,18 @@ async fn main() {
 
         window.set_child(Some(&main_box));
         window.present();
+
+        // Create tray widget AFTER the window is presented and GTK is fully running
+        let main_box_weak = main_box.downgrade();
+        glib::timeout_add_local_once(std::time::Duration::from_millis(500), move || {
+            glib::spawn_future_local(async move {
+                if let Ok(tray_widget) = TrayWidget::new().await {
+                    if let Some(main_box) = main_box_weak.upgrade() {
+                        main_box.append(tray_widget.widget());
+                    }
+                }
+            });
+        });
     });
 
     app.run();

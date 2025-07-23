@@ -9,7 +9,7 @@ use system_tray::item::IconPixmap;
 use system_tray::item::Tooltip;
 use system_tray::item::{Status, StatusNotifierItem};
 
-pub fn create_tray_button(item: &StatusNotifierItem, tray_widget: Arc<TrayWidget>) -> Button {
+pub fn create_tray_button(item: &StatusNotifierItem, service_key: &str, tray_widget: Arc<TrayWidget>) -> Button {
     let button = Button::new();
     button.add_css_class("tray-button");
 
@@ -20,30 +20,114 @@ pub fn create_tray_button(item: &StatusNotifierItem, tray_widget: Arc<TrayWidget
     // Set tooltip
     set_tooltip(&button, item.tool_tip.clone(), Some(title));
 
+    // Handle left-click (primary button) using gesture
+    let left_click = gtk4::GestureClick::new();
+    left_click.set_button(1); // Left mouse button (button 1)
+
+    let item_id_left = item.id.clone();
+    let service_key_left = service_key.to_string();
+    let tray_widget_weak_left = Arc::downgrade(&tray_widget);
+
+    left_click.connect_pressed(move |_, _, _x, _y| {
+        if let Some(tray_widget) = tray_widget_weak_left.upgrade() {
+            let item_id = item_id_left.clone();
+            let service_key = service_key_left.clone();
+            
+            println!("Left-click on tray item: {} (service: {})", item_id, service_key);
+            
+            // Activate the tray item using the service key
+            glib::spawn_future_local(async move {
+                if let Err(e) = tray_widget
+                    .system_tray_client
+                    .activate(ActivateRequest::Default {
+                        address: service_key.clone(),
+                        x: 0,
+                        y: 0,
+                    })
+                    .await {
+                    eprintln!("Failed to activate tray item '{}' (service: '{}'): {}", item_id, service_key, e);
+                } else {
+                    println!("Successfully activated tray item: {} (service: {})", item_id, service_key);
+                }
+            });
+        }
+    });
+
+    button.add_controller(left_click);
+
+    // Handle middle-click (middle button) using gesture
+    let middle_click = gtk4::GestureClick::new();
+    middle_click.set_button(2); // Middle mouse button (button 2)
+
+    let item_id_middle = item.id.clone();
+    let service_key_middle = service_key.to_string();
+    let tray_widget_weak_middle = Arc::downgrade(&tray_widget);
+
+    middle_click.connect_pressed(move |_, _, _x, _y| {
+        if let Some(tray_widget) = tray_widget_weak_middle.upgrade() {
+            let item_id = item_id_middle.clone();
+            let service_key = service_key_middle.clone();
+            
+            println!("Middle-click on tray item: {} (service: {})", item_id, service_key);
+            
+            // For middle-click, we can use the Secondary activation (common pattern)
+            glib::spawn_future_local(async move {
+                if let Err(e) = tray_widget
+                    .system_tray_client
+                    .activate(ActivateRequest::Secondary {
+                        address: service_key.clone(),
+                        x: 0,
+                        y: 0,
+                    })
+                    .await {
+                    eprintln!("Failed to secondary activate tray item '{}' (service: '{}'): {}", item_id, service_key, e);
+                } else {
+                    println!("Successfully secondary activated tray item: {} (service: {})", item_id, service_key);
+                }
+            });
+        }
+    });
+
+    button.add_controller(middle_click);
+
     // Handle right-click (secondary button) using gesture
     let right_click = gtk4::GestureClick::new();
     right_click.set_button(3); // Right mouse button (button 3)
 
     let item_id_right = item.id.clone();
+    let service_key_right = service_key.to_string();
     let tray_widget_weak = Arc::downgrade(&tray_widget);
 
-    right_click.connect_pressed(move |_, _, x, y| {
+    right_click.connect_pressed(move |_, _, _x, _y| {
         if let Some(tray_widget) = tray_widget_weak.upgrade() {
             let item_id = item_id_right.clone();
-
-            glib::spawn_future_local(async move {
-                tray_widget
-                    .system_tray_client
-                    .activate(ActivateRequest::Default {
-                        address: item_id,
-                        x: x as i32,
-                        y: y as i32,
-                    })
-                    .await
-                    .unwrap();
-            });
-
-            // Self::show_context_menu(&button, &item_id_right, &t2, &menu_data, x, y);
+            let service_key = service_key_right.clone();
+            
+            // Get the PopoverMenu for this service key and show it
+            if let Some(popover_menu) = tray_widget.get_menu_for_service_key(&service_key) {
+                println!("Showing PopoverMenu for item: {} (service: {})", item_id, service_key);
+                popover_menu.popup();
+            } else {
+                println!("No PopoverMenu found for item: {} (service: {})", item_id, service_key);
+                
+                // Fallback: try to activate the item using the service key
+                println!("Right-click fallback: using service key '{}' for item '{}'", service_key, item_id);
+                
+                glib::spawn_future_local(async move {
+                    if let Err(e) = tray_widget
+                        .system_tray_client
+                        .activate(ActivateRequest::Default {
+                            address: service_key.clone(),
+                            x: 0,
+                            y: 0,
+                        })
+                        .await {
+                        eprintln!("Failed to activate tray item '{}' (service: '{}'): {}", item_id, service_key, e);
+                    } else {
+                        println!("Fallback activation successful for item: {} (service: {})", item_id, service_key);
+                    }
+                });
+            }
         }
     });
 

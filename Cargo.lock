@@ -82,6 +82,7 @@ checksum = "1b8e56985ec62d17e9c1001dc89c88ecd7dc08e47eba5ec7c29c7b5eeecde967"
 name = "blade_bar"
 version = "0.1.0"
 dependencies = [
+ "gio",
  "glib 0.18.5",
  "gtk4",
  "gtk4-layer-shell",
