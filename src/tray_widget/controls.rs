@@ -1,15 +1,19 @@
 use std::sync::Arc;
 
-use crate::tray_widget::{self, TrayWidget};
+use crate::tray_widget::TrayWidget;
 use gtk4::gdk_pixbuf::{Colorspace, Pixbuf};
-use gtk4::{Box as GtkBox, Button, Image, Orientation};
-use gtk4::{EventControllerMotion, Label, Popover, prelude::*};
+use gtk4::prelude::*;
+use gtk4::{Box as GtkBox, Button, Image, Orientation, Popover};
 use system_tray::client::ActivateRequest;
 use system_tray::item::IconPixmap;
+use system_tray::item::StatusNotifierItem;
 use system_tray::item::Tooltip;
-use system_tray::item::{Status, StatusNotifierItem};
 
-pub fn create_tray_button(item: &StatusNotifierItem, service_key: &str, tray_widget: Arc<TrayWidget>) -> Button {
+pub fn create_tray_button(
+    item: &StatusNotifierItem,
+    service_key: &str,
+    tray_widget: Arc<TrayWidget>,
+) -> Button {
     let button = Button::new();
     button.add_css_class("tray-button");
 
@@ -32,9 +36,12 @@ pub fn create_tray_button(item: &StatusNotifierItem, service_key: &str, tray_wid
         if let Some(tray_widget) = tray_widget_weak_left.upgrade() {
             let item_id = item_id_left.clone();
             let service_key = service_key_left.clone();
-            
-            println!("Left-click on tray item: {} (service: {})", item_id, service_key);
-            
+
+            println!(
+                "Left-click on tray item: {} (service: {})",
+                item_id, service_key
+            );
+
             // Activate the tray item using the service key
             glib::spawn_future_local(async move {
                 if let Err(e) = tray_widget
@@ -44,10 +51,17 @@ pub fn create_tray_button(item: &StatusNotifierItem, service_key: &str, tray_wid
                         x: 0,
                         y: 0,
                     })
-                    .await {
-                    eprintln!("Failed to activate tray item '{}' (service: '{}'): {}", item_id, service_key, e);
+                    .await
+                {
+                    eprintln!(
+                        "Failed to activate tray item '{}' (service: '{}'): {}",
+                        item_id, service_key, e
+                    );
                 } else {
-                    println!("Successfully activated tray item: {} (service: {})", item_id, service_key);
+                    println!(
+                        "Successfully activated tray item: {} (service: {})",
+                        item_id, service_key
+                    );
                 }
             });
         }
@@ -67,9 +81,12 @@ pub fn create_tray_button(item: &StatusNotifierItem, service_key: &str, tray_wid
         if let Some(tray_widget) = tray_widget_weak_middle.upgrade() {
             let item_id = item_id_middle.clone();
             let service_key = service_key_middle.clone();
-            
-            println!("Middle-click on tray item: {} (service: {})", item_id, service_key);
-            
+
+            println!(
+                "Middle-click on tray item: {} (service: {})",
+                item_id, service_key
+            );
+
             // For middle-click, we can use the Secondary activation (common pattern)
             glib::spawn_future_local(async move {
                 if let Err(e) = tray_widget
@@ -79,10 +96,17 @@ pub fn create_tray_button(item: &StatusNotifierItem, service_key: &str, tray_wid
                         x: 0,
                         y: 0,
                     })
-                    .await {
-                    eprintln!("Failed to secondary activate tray item '{}' (service: '{}'): {}", item_id, service_key, e);
+                    .await
+                {
+                    eprintln!(
+                        "Failed to secondary activate tray item '{}' (service: '{}'): {}",
+                        item_id, service_key, e
+                    );
                 } else {
-                    println!("Successfully secondary activated tray item: {} (service: {})", item_id, service_key);
+                    println!(
+                        "Successfully secondary activated tray item: {} (service: {})",
+                        item_id, service_key
+                    );
                 }
             });
         }
@@ -98,36 +122,76 @@ pub fn create_tray_button(item: &StatusNotifierItem, service_key: &str, tray_wid
     let service_key_right = service_key.to_string();
     let tray_widget_weak = Arc::downgrade(&tray_widget);
 
-    right_click.connect_pressed(move |_, _, _x, _y| {
+    right_click.connect_pressed(move |_, _, x, y| {
+        println!("Right-click detected at coordinates ({}, {})", x, y);
+
         if let Some(tray_widget) = tray_widget_weak.upgrade() {
             let item_id = item_id_right.clone();
             let service_key = service_key_right.clone();
-            
-            // Get the PopoverMenu for this service key and show it
-            if let Some(popover_menu) = tray_widget.get_menu_for_service_key(&service_key) {
-                println!("Showing PopoverMenu for item: {} (service: {})", item_id, service_key);
+
+            println!(
+                "Processing right-click for item: {} (service: {})",
+                item_id, service_key
+            );
+
+            // Check for manual popover first (with icon support), then fallback to PopoverMenu
+            if let Some(manual_popover) = tray_widget.get_manual_popover_for_service_key(&service_key) {
+                println!(
+                    "Found manual popover for item: {} (service: {}), showing it",
+                    item_id, service_key
+                );
+
+                // Use popup() to show the manual popover
+                manual_popover.popup();
+
+                println!("Manual popover popup() called successfully");
+            } else if let Some(popover_menu) = tray_widget.get_menu_for_service_key(&service_key) {
+                println!(
+                    "Found PopoverMenu for item: {} (service: {}), showing it",
+                    item_id, service_key
+                );
+
+                // Use popup() to show the popover at the current position
                 popover_menu.popup();
+
+                println!("PopoverMenu popup() called successfully");
             } else {
-                println!("No PopoverMenu found for item: {} (service: {})", item_id, service_key);
-                
+                println!(
+                    "No PopoverMenu found for item: {} (service: {})",
+                    item_id, service_key
+                );
+
                 // Fallback: try to activate the item using the service key
-                println!("Right-click fallback: using service key '{}' for item '{}'", service_key, item_id);
-                
+                println!(
+                    "Right-click fallback: using service key '{}' for item '{}'",
+                    service_key, item_id
+                );
+
+                let tray_widget_clone = tray_widget.clone();
                 glib::spawn_future_local(async move {
-                    if let Err(e) = tray_widget
+                    if let Err(e) = tray_widget_clone
                         .system_tray_client
                         .activate(ActivateRequest::Default {
                             address: service_key.clone(),
                             x: 0,
                             y: 0,
                         })
-                        .await {
-                        eprintln!("Failed to activate tray item '{}' (service: '{}'): {}", item_id, service_key, e);
+                        .await
+                    {
+                        eprintln!(
+                            "Failed to activate tray item '{}' (service: '{}'): {}",
+                            item_id, service_key, e
+                        );
                     } else {
-                        println!("Fallback activation successful for item: {} (service: {})", item_id, service_key);
+                        println!(
+                            "Fallback activation successful for item: {} (service: {})",
+                            item_id, service_key
+                        );
                     }
                 });
             }
+        } else {
+            println!("TrayWidget weak reference upgrade failed in right-click handler");
         }
     });
 
