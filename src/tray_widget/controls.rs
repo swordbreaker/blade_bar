@@ -27,62 +27,7 @@ pub fn create_tray_button(
 
     button.add_controller(left_click);
 
-    let middle_click = gtk4::GestureClick::new();
-    middle_click.set_button(2);
-
-    // Handle right-click (secondary button) using gesture
-    let right_click = gtk4::GestureClick::new();
-    right_click.set_button(3); // Right mouse button (button 3)
-
-    let item_id_right = item.id.clone();
-    let service_key_right = service_key.to_string();
-    let tray_widget_weak = Arc::downgrade(&tray_widget);
-
-    right_click.connect_pressed(move |_, _, x, y| {
-        println!("Right-click detected at coordinates ({}, {})", x, y);
-
-        if let Some(tray_widget) = tray_widget_weak.upgrade() {
-            let item_id = item_id_right.clone();
-            let service_key = service_key_right.clone();
-
-            // Check for manual popover first (with icon support), then fallback to PopoverMenu
-            if let Some(manual_popover) =
-                tray_widget.get_manual_popover_for_service_key(&service_key)
-            {
-                // Use popup() to show the manual popover
-                manual_popover.popup();
-            } else if let Some(popover_menu) = tray_widget.get_menu_for_service_key(&service_key) {
-                // Use popup() to show the popover at the current position
-                popover_menu.popup();
-            } else {
-                let tray_widget_clone = tray_widget.clone();
-                glib::spawn_future_local(async move {
-                    if let Err(e) = tray_widget_clone
-                        .system_tray_client
-                        .activate(ActivateRequest::Default {
-                            address: service_key.clone(),
-                            x: 0,
-                            y: 0,
-                        })
-                        .await
-                    {
-                        eprintln!(
-                            "Failed to activate tray item '{}' (service: '{}'): {}",
-                            item_id, service_key, e
-                        );
-                    } else {
-                        println!(
-                            "Fallback activation successful for item: {} (service: {})",
-                            item_id, service_key
-                        );
-                    }
-                });
-            }
-        } else {
-            println!("TrayWidget weak reference upgrade failed in right-click handler");
-        }
-    });
-
+    let right_click = get_button_right_click(item, &tray_widget, Arc::from(service_key));
     button.add_controller(right_click);
 
     button
@@ -220,7 +165,7 @@ fn get_button_right_click(
     item: &StatusNotifierItem,
     tray_widget: &Arc<TrayWidget>,
     service_key: Arc<str>,
-) {
+) -> gtk4::GestureClick {
     let right_click = gtk4::GestureClick::new();
     right_click.set_button(3);
 
@@ -271,6 +216,8 @@ fn get_button_right_click(
             println!("TrayWidget weak reference upgrade failed in right-click handler");
         }
     });
+
+    right_click
 }
 
 fn show_context_menu(
