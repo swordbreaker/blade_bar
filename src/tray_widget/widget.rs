@@ -8,6 +8,8 @@ use system_tray::error::Error;
 use system_tray::item::StatusNotifierItem;
 use tokio::sync::broadcast;
 
+use crate::tray_widget::controls::create_tray_button;
+
 /// The main tray widget that manages system tray items
 pub struct TrayWidget {
     pub container: GtkBox,
@@ -34,7 +36,8 @@ impl TrayWidget {
         let client = Arc::new(Client::new().await?);
         let client_copy = Arc::clone(&client);
 
-        let (thread_handle, shutdown_tx, mut event_rx) = Self::start_event_listener(&client_copy);
+        let (thread_handle, shutdown_tx, mut event_rx) = 
+            Self::start_event_listener(&client_copy);
 
         let tray_widget = Arc::new(TrayWidget {
             container,
@@ -118,12 +121,10 @@ impl TrayWidget {
         (thread_handle, shutdown_tx, event_rx)
     }
 
-    /// Get the GTK widget container
     pub fn widget(&self) -> &GtkBox {
         &self.container
     }
 
-    /// Handle a tray event and update the UI
     fn handle_tray_event(self: &Arc<Self>, event: TrayEvent) {
         match event {
             TrayEvent::Add(service_key, item) => {
@@ -138,15 +139,12 @@ impl TrayWidget {
         }
     }
 
-    /// Add a new tray item
     fn add_tray_item(
         &self,
         service_key: &str,
         item: &StatusNotifierItem,
         tray_widget_arc: &Arc<Self>,
     ) {
-        println!("Adding tray item: {} (id: {})", service_key, item.id);
-
         // Store the item
         if let Ok(mut items) = self.items.lock() {
             items.insert(service_key.to_string(), item.clone());
@@ -158,7 +156,7 @@ impl TrayWidget {
         }
 
         // Create button using the controls module
-        let button = crate::tray_widget::controls::create_tray_button(
+        let button = create_tray_button(
             item,
             service_key,
             Arc::clone(tray_widget_arc),
@@ -176,14 +174,11 @@ impl TrayWidget {
         self.container.append(&button);
     }
 
-    /// Update an existing tray item
     fn update_tray_item(
         &self,
         service_key: &str,
         _update_event: &system_tray::client::UpdateEvent,
     ) {
-        println!("Updating tray item: {}", service_key);
-
         // For now, just update the button if it exists
         if let Ok(buttons) = self.item_buttons.lock() {
             if let Some(button) = buttons.get(service_key) {
@@ -207,10 +202,7 @@ impl TrayWidget {
         }
     }
 
-    /// Remove a tray item
     fn remove_tray_item(&self, service_key: &str) {
-        println!("Removing tray item: {}", service_key);
-
         // Remove from container
         if let Ok(mut buttons) = self.item_buttons.lock() {
             if let Some(button) = buttons.remove(service_key) {
@@ -274,10 +266,6 @@ impl TrayWidget {
             if let Some((_item, menu_opt)) = items.get(service_key) {
                 if let Some(menu) = menu_opt {
                     // Create a menu from actual menu data using manual approach for better icon support
-                    println!(
-                        "Creating manual menu from system-tray data for {}",
-                        service_key
-                    );
                     let popover = crate::tray_widget::manual_menu::create_manual_popover_menu(
                         button,
                         &menu.submenus,
@@ -292,17 +280,6 @@ impl TrayWidget {
                     return;
                 }
             }
-        }
-
-        // Fallback: create a basic menu using menu helpers
-        println!("Creating basic fallback menu for {}", service_key);
-        let popover = crate::tray_widget::menu_helpers::create_basic_popover_menu(
-            button,
-            &format!("/MenuBar/{}", item.id),
-        );
-
-        if let Ok(mut menus) = self.item_menus.lock() {
-            menus.insert(service_key.to_string(), popover);
         }
     }
 
