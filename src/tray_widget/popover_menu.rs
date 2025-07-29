@@ -1,12 +1,15 @@
 // Manual menu creation with proper icon support for GTK4
 
+use gio::glib::translate::FromGlibPtrArrayContainerAsVec;
+use gtk4::gdk_pixbuf::{InterpType, Pixbuf};
 use gtk4::prelude::*;
 use gtk4::{Box as GtkBox, Button, Image, Label, Popover, Orientation};
+use std::io::Cursor;
 use std::sync::Arc;
 use system_tray::menu::MenuItem;
 
 /// Create a manual popover menu with proper icon support
-pub fn create_manual_popover_menu(
+pub fn create_popover_menu(
     button: &Button,
     menu_items: &[MenuItem],
     service_key: &str,
@@ -25,6 +28,19 @@ pub fn create_manual_popover_menu(
         if !menu_item.visible {
             continue;
         }
+
+        menu_item.submenu.iter().for_each(|submenu: &MenuItem| {
+            // Handle submenu items
+            let submenu_popover = create_popover_menu(button, &[submenu.clone()], service_key, Arc::clone(&system_tray_client));
+            let submenu_button = Button::new();
+            submenu_button.add_css_class("submenu-button");
+            submenu_button.set_child(Some(&Image::from_icon_name("go-next")));
+            submenu_button.connect_clicked(move |_| {
+                submenu_popover.popup();
+            });
+            menu_box.append(&submenu_button);
+            return;
+        });
 
         // Handle separator items
         if format!("{:?}", menu_item.menu_type).contains("Separator") {
@@ -51,28 +67,15 @@ pub fn create_manual_popover_menu(
 
                 // Add icon if available
                 let mut icon_added = false;
-                if let Some(icon_name) = &menu_item.icon_name {
-                    if !icon_name.is_empty() {
-                        let icon = Image::from_icon_name(icon_name);
-                        icon.set_icon_size(gtk4::IconSize::Normal);
+                match create_icon(menu_item) {
+                    Some(icon) => {
                         item_box.append(&icon);
-                        icon_added = true;
+                    },
+                    None => {
+                        let spacer = GtkBox::new(Orientation::Horizontal, 0);
+                        spacer.set_size_request(16, 16);
+                        item_box.append(&spacer);
                     }
-                } else if let Some(icon_data) = &menu_item.icon_data {
-                    if !icon_data.is_empty() {
-                        // Try to create icon from data - simplified approach
-                        let icon = Image::from_icon_name("image-x-generic"); // Fallback icon for data
-                        icon.set_icon_size(gtk4::IconSize::Normal);
-                        item_box.append(&icon);
-                        icon_added = true;
-                    }
-                }
-
-                // Add placeholder space if no icon
-                if !icon_added {
-                    let spacer = GtkBox::new(Orientation::Horizontal, 0);
-                    spacer.set_size_request(16, 16);
-                    item_box.append(&spacer);
                 }
 
                 // Add label
@@ -142,4 +145,36 @@ pub fn create_manual_popover_menu(
 
     popover.set_child(Some(&menu_box));
     popover
+}
+
+fn create_icon(menu_item: &MenuItem) -> Option<Image> {
+    if let Some(icon_name) = &menu_item.icon_name {
+        if !icon_name.is_empty() {
+            let icon = Image::from_icon_name(icon_name);
+            icon.set_icon_size(gtk4::IconSize::Normal);
+            return Some(icon);
+        }
+    } else if let Some(icon_data) = &menu_item.icon_data {
+        if !icon_data.is_empty() {
+            // Create icon from PNG data
+            match Pixbuf::from_read(Cursor::new(icon_data.clone())) {
+                Ok(pixbuf) => {
+                    // Scale the pixbuf to appropriate size (16x16 for menu items)
+                    let scaled_pixbuf = pixbuf.scale_simple(16, 16, InterpType::Bilinear);
+                    if let Some(scaled) = scaled_pixbuf {
+                        return Some(Image::from_pixbuf(Some(&scaled)));
+                    } else {
+                        // Fallback if scaling fails
+                        return Some(Image::from_pixbuf(Some(&pixbuf)));
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to load icon from PNG data: {}", e);
+                    // Use fallback icon
+                    return Some(Image::from_icon_name("image-x-generic"));
+                }
+            }
+        }
+    }
+    return None;
 }

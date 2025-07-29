@@ -266,7 +266,7 @@ impl TrayWidget {
             if let Some((_item, menu_opt)) = items.get(service_key) {
                 if let Some(menu) = menu_opt {
                     // Create a menu from actual menu data using manual approach for better icon support
-                    let popover = crate::tray_widget::manual_menu::create_manual_popover_menu(
+                    let popover = crate::tray_widget::popover_menu::create_popover_menu(
                         button,
                         &menu.submenus,
                         service_key,

@@ -220,39 +220,3 @@ fn get_button_right_click(
     right_click
 }
 
-fn show_context_menu(
-    button: &Button,
-    item_id: &str,
-    item_title: &str,
-    menu_data: &Option<String>,
-    x: f64,
-    y: f64,
-) {
-    // Create a popover menu
-    let popover = gtk4::Popover::new();
-    popover.set_parent(button);
-    popover.set_position(gtk4::PositionType::Bottom);
-
-    // Create a vertical box to hold menu items
-    let menu_box = GtkBox::new(gtk4::Orientation::Vertical, 0);
-    menu_box.add_css_class("menu");
-
-    // If we have actual menu data from the tray item, parse and add those items
-    if let Some(menu_str) = menu_data {
-        // Add separator for custom menu items
-        let separator3 = gtk4::Separator::new(gtk4::Orientation::Horizontal);
-        separator3.add_css_class("menu-separator");
-        menu_box.append(&separator3);
-
-        // TODO: Parse the actual menu structure and add custom items
-        // For now, just show that custom menu data is available
-        let custom_info = gtk4::Label::new(Some("Custom menu available"));
-        custom_info.add_css_class("menu-info");
-        menu_box.append(&custom_info);
-    }
-
-    popover.set_child(Some(&menu_box));
-
-    // Show the popover
-    popover.popup();
-}
