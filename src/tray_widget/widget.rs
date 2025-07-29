@@ -232,15 +232,6 @@ impl TrayWidget {
         }
     }
 
-    /// Get the service key for a given item ID (needed for activation)
-    pub fn get_service_key_for_item(&self, item_id: &str) -> Option<String> {
-        if let Ok(mapping) = self.item_to_service_key.lock() {
-            mapping.get(item_id).cloned()
-        } else {
-            None
-        }
-    }
-
     /// Get the PopoverMenu for a given service key
     pub fn get_menu_for_service_key(&self, service_key: &str) -> Option<gtk4::PopoverMenu> {
         if let Ok(menus) = self.item_menus.lock() {
